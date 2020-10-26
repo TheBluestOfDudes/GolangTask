@@ -13,6 +13,7 @@ func main() {
 		log.Fatal(err)
 	}
 	http.HandleFunc("/", hello)
+	http.HandleFunc("/test/", testmethod)
 	log.Printf("Listening on %s...\n", addr)
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		panic(err)
@@ -29,4 +30,8 @@ func determineListenAddress() (string, error) {
 
 func hello(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Hello World")
+}
+
+func testmethod(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "This is a test")
 }
