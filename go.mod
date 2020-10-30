@@ -3,6 +3,7 @@ module main
 go 1.15
 
 require (
+	github.com/google/go-github/v32 v32.1.0
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
