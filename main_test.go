@@ -29,7 +29,6 @@ type info struct {
 	want   githubInfo
 }
 
-//TestCheckPath function for the CheckPath function
 func TestCheckPath(t *testing.T) {
 	validURI := []string{"github.com", "TheBluestOfDudes", "GameJam-Shooting-Stars"}
 	invalidURIOne := []string{"Something", "SomethingElse", "SomethingSomething"}

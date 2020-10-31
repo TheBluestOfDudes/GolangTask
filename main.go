@@ -32,9 +32,6 @@ type contributor struct { //"contributor": Is a struct for unmarshaling contribu
 	Contributions int    `json:"contributions"` //Contribution: The number of contributions the contributor has made
 }
 
-/**
-*	main() is the main function for the service
- */
 func main() {
 	addr, err := determineListenAddress()
 	if err != nil {
@@ -55,43 +52,50 @@ func determineListenAddress() (string, error) {
 	return ":" + port, nil
 }
 
-//Handles the requests to /projectinfo/v1/
 func serviceHandler(w http.ResponseWriter, r *http.Request) {
-	//Get the URI from browser path
-	path := strings.Split(r.URL.Path, "/")
+	path := strings.Split(r.URL.Path, "/") //Get rid of the root path, leaving "github.com/[user]/[repo]"
 	path = path[3:]
-	//Make sure it's ok
-	ok, message := checkPath(path)
+	ok, message := checkPath(path) //Check the path we have
 	if ok {
-		info := getInfo(path)
-		js, err := json.Marshal(info)
-		if err != nil {
+		info := getInfo(path)         //Create a githubinfo struct using path
+		js, err := json.Marshal(info) //Marshal into JSON
+		if err != nil {               //Error message
 			fmt.Fprintln(w, "Failed to marshal json")
-		} else {
+		} else { //Write JSON
 			w.Header().Set("Content-Type", "application/json")
 			w.Write(js)
 		}
-	} else {
+	} else { //Error message if path is invalid
 		fmt.Fprintln(w, message)
 	}
 }
 
-//Checks if the given path is of the right legnth and starts with github.
+/*
+*	Checks that the given path conforms to what is expected
+*	@param path []string This is a slice containing each of the parts of the request path "github.com/[user]/[repo]"
+*	@return bool This is a boolean to determine if the check passed or not
+*	@return string This holds an error message if the check did not pass
+ */
 func checkPath(path []string) (bool, string) {
 	ok := false
 	message := ""
-	//Length should be 3. "[github.com,[org/username],[repo]]"
 	if len(path) != 3 {
 		message = "Incorrect path length"
-	} else if strings.ToLower(path[0]) != "github.com" { //The path schould start with "github.com"
+	} else if strings.ToLower(path[0]) != "github.com" {
 		message = "Not a github link"
-	} else { //Assuming the above two are fine, the path is deemed useable
+	} else {
 		ok = true
 		message = "All good"
 	}
 	return ok, message
 }
 
+/*
+*	Creates a githubinfo object and fills it with the relevant data.
+*	If any of the data requests failed, the corresponding object field will be set to "Could not find [thing we didnt find]"
+*	@param params []string This is a slice containing each of the parts of the request path "github.com/[user]/[repo]"
+*	@return githubinfo This is a githubinfo object containing all the data we wish to marshal as JSON
+ */
 func getInfo(params []string) githubInfo {
 	gI := githubInfo{}
 	gI.Project = params[2]
@@ -118,6 +122,14 @@ func getInfo(params []string) githubInfo {
 	return gI
 }
 
+/*
+*	Gets the name(s) of the top contributor(s) to the repository
+*	@param user string This is the username given in the request path
+*	@param param string This is the repository name given in the request path
+*	@return []string This is a slice of the top contributer(s) to the repository
+*	@return int This is the total number of commits to the repository
+*	@return bool This is a boolean tells whether we failed to get the contributors or not
+ */
 func getContributor(user string, param string) ([]string, int, bool) {
 	var contributors []string
 	var data []contributor
@@ -145,12 +157,12 @@ func getContributor(user string, param string) ([]string, int, bool) {
 				fail = true
 			} else {
 				top := 0
-				contributors = make([]string, 0, len(data))
+				contributors = make([]string, 0, len(data)) //Make contributors become a slice of equal length
 				for i := 0; i < len(data); i++ {
-					commits += data[i].Contributions
-					if data[i].Contributions == top {
+					commits += data[i].Contributions  //Update total commits
+					if data[i].Contributions == top { //Append to contributors slice if mutliple people share the top
 						contributors = append(contributors, data[i].Name)
-					} else if data[i].Contributions > top {
+					} else if data[i].Contributions > top { //Reset slice if a new top is met
 						contributors = make([]string, 0, len(data))
 						contributors = append(contributors, data[i].Name)
 						top = data[i].Contributions
@@ -162,6 +174,13 @@ func getContributor(user string, param string) ([]string, int, bool) {
 	return contributors, commits, fail
 }
 
+/*
+*	Gets all the programming languges used in the repository
+*	@param user string This is the username given in the request path
+*	@param param string This is the repository name given in the request path
+*	@return []string This is a slice of all the programming languages used in the repository
+*	@return bool This is a boolean tells whether we failed to get the languages or not
+ */
 func getLanguages(user string, param string) ([]string, bool) {
 	var langs []string
 	var data map[string]interface{}
@@ -188,8 +207,8 @@ func getLanguages(user string, param string) ([]string, bool) {
 			} else if len(data) == 0 {
 				fail = true
 			}
-			langs = make([]string, 0, len(data))
-			for key := range data {
+			langs = make([]string, 0, len(data)) //api.github.com returns the languges as keynames rather than values
+			for key := range data {              //so we get the keynames and put them into langs
 				langs = append(langs, key)
 				if key == "message" {
 					fail = true
@@ -200,6 +219,13 @@ func getLanguages(user string, param string) ([]string, bool) {
 	return langs, fail
 }
 
+/*
+*	Gets the name of the given user. If it's an organization, we use the organizations name. Otherwise we use the login username
+*	@param param string This is the username given in the request path
+*	@return string This is the found name of the user. We use the login username if the user is a normal user,
+*	and the organization name if it's an organization
+*	@return bool This is a boolean tells whether we failed to get the name or not
+ */
 func getName(param string) (string, bool) {
 	var uName username
 	name := ""
