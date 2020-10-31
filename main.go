@@ -13,9 +13,11 @@ import (
 const failtext = "Could not find"
 
 type githubInfo struct {
-	UserOrg      string
+	Project      string
+	Owner        string
+	TopCommitter []string
+	Commits      int
 	Languages    []string
-	Contributors []string
 }
 
 type username struct {
@@ -94,16 +96,12 @@ func checkPath(path []string) (bool, string) {
 
 func getInfo(params []string) githubInfo {
 	gI := githubInfo{}
+	gI.Project = params[2]
 	uName, err := getName(params[1])
 	if !err {
-		gI.UserOrg = uName
+		gI.Owner = uName
 	} else {
-		uName, err := getName(params[1])
-		if !err {
-			gI.UserOrg = uName
-		} else {
-			gI.UserOrg = failtext + " name"
-		}
+		gI.Owner = failtext + " owner name"
 	}
 	languages, err := getLanguages(params[1], params[2])
 	if !err {
@@ -111,19 +109,22 @@ func getInfo(params []string) githubInfo {
 	} else {
 		gI.Languages = []string{failtext + " languages"}
 	}
-	contributors, err := getContributor(params[1], params[2])
+	contributors, commits, err := getContributor(params[1], params[2])
 	if !err {
-		gI.Contributors = contributors
+		gI.TopCommitter = contributors
+		gI.Commits = commits
 	} else {
-		gI.Contributors = []string{failtext + " contributors"}
+		gI.TopCommitter = []string{failtext + " contributors"}
+		gI.Commits = 0
 	}
 	return gI
 }
 
-func getContributor(user string, param string) ([]string, bool) {
+func getContributor(user string, param string) ([]string, int, bool) {
 	var contributors []string
 	var data []contributor
 	fail := false
+	commits := 0
 	apiLink := "https://api.github.com/repos/" + user + "/" + param + "/contributors"
 	resp, err := http.Get(apiLink)
 	if err != nil {
@@ -148,6 +149,7 @@ func getContributor(user string, param string) ([]string, bool) {
 				top := 0
 				contributors = make([]string, 0, len(data))
 				for i := 0; i < len(data); i++ {
+					commits += data[i].Contributions
 					if data[i].Contributions == top {
 						contributors = append(contributors, data[i].Name)
 					} else if data[i].Contributions > top {
@@ -159,7 +161,7 @@ func getContributor(user string, param string) ([]string, bool) {
 			}
 		}
 	}
-	return contributors, fail
+	return contributors, commits, fail
 }
 
 func getLanguages(user string, param string) ([]string, bool) {
@@ -191,6 +193,9 @@ func getLanguages(user string, param string) ([]string, bool) {
 			langs = make([]string, 0, len(data))
 			for key := range data {
 				langs = append(langs, key)
+				if key == "message" {
+					fail = true
+				}
 			}
 		}
 	}
