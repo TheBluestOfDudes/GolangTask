@@ -12,32 +12,34 @@ import (
 
 const failtext = "Could not find"
 
-type githubInfo struct {
-	Project      string
-	Owner        string
-	TopCommitter []string
-	Commits      int
-	Languages    []string
+type githubInfo struct { //"githubinfo": Is a struct we use to marshal retrieved data into JSON
+	Project      string   //Project: The repostory's name
+	Owner        string   //Owner: The owner of the repository
+	TopCommitter []string //TopCommiter: The top commiter(s) in the repository
+	Commits      int      //Commits: The total number of commits to the repository
+	Languages    []string //Languages: The programming languges used in the repository
 }
 
-type username struct {
-	Name    string `json:"name"`
-	Login   string `json:"login"`
-	Type    string `json:"type"`
-	Message string `json:"message"`
+type username struct { //"username": Is a struct for unmarshaling user data JSON from api.github.com
+	Name    string `json:"name"`    //Name: The organization name of the user
+	Login   string `json:"login"`   //Login: The login username of the user
+	Type    string `json:"type"`    //Type: What type of user the account is (Organization/User)
+	Message string `json:"message"` //Message: The response message api.github.com sends when it could not find something
 }
 
-type contributor struct {
-	Name          string `json:"login"`
-	Contributions int    `json:"contributions"`
+type contributor struct { //"contributor": Is a struct for unmarshaling contributor JSON from api.github.com
+	Name          string `json:"login"`         //Name: The login username of the contributor
+	Contributions int    `json:"contributions"` //Contribution: The number of contributions the contributor has made
 }
 
+/**
+*	main() is the main function for the service
+ */
 func main() {
 	addr, err := determineListenAddress()
 	if err != nil {
 		log.Fatal(err)
 	}
-	http.HandleFunc("/", hello)
 	http.HandleFunc("/projectinfo/v1/", serviceHandler)
 	log.Printf("Listening on %s...\n", addr)
 	if err := http.ListenAndServe(addr, nil); err != nil {
@@ -51,10 +53,6 @@ func determineListenAddress() (string, error) {
 		return "", fmt.Errorf("$PORT not set")
 	}
 	return ":" + port, nil
-}
-
-func hello(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hi")
 }
 
 //Handles the requests to /projectinfo/v1/
